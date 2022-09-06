@@ -1,0 +1,144 @@
+import static oms3.SimBuilder.instance as OMS3
+import static oms3.SimBuilder.*
+def home = oms_prj
+
+def startDate	= "2013-12-15 00:00"
+def endDate		= "2015-12-16 00:00"
+def site 		= "Cavone"
+def timestep 	= 60 //minuti
+def ID			= 1
+
+OMS3.sim {
+	resource "$oms_prj/lib"    
+	model(while:"readerAirTemperature.doProcess") {
+		components {
+			//Input-Output components
+			"input"     "it.geoframe.blogspot.geoet.inout.InputReaderMain"
+			"output"    "it.geoframe.blogspot.geoet.inout.OutputWriterMain"
+			
+			//GEOET components
+			"priestleyTaylor"               "it.geoframe.blogspot.geoet.priestleytaylor.PriestleyTaylorActualETSolverMain"
+			"PTstressfactor"				"it.geoframe.blogspot.geoet.stressfactor.solver.PTPMStressFactorSolverMain"
+			
+			"readerAirTemperature"			"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerNetRadiation"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerAtmosphericPressure"     "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerSoilHeatFlux"          	"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerSoilMoisture"          	"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerCentroids"				"org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"		       
+			"readerDem"						"org.hortonmachine.gears.io.rasterreader.OmsRasterReader" 
+				
+			"writerLatentHeatPT"			"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"      
+			"writerETPriestleyTaylor"		"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"      			         
+			
+			}  
+			parameter{        
+				
+				// GEOgraphy PARAMETERS
+				"readerDem.file"			"${home}/data/${site}/${ID}/dem_${ID}.tif"	 
+				"readerCentroids.file"		"${home}/data/${site}/${ID}/centroids_ID_${ID}.shp" // file della posizione esatta del punto di eseme
+				"input.idCentroids"			"ID"
+				"input.centroidElevation"	"Elevation" 
+				
+				// PARAMETERS
+				"priestleyTaylor.alpha"						1.26
+		        "priestleyTaylor.soilFluxParameterDay"		0.35
+		        "priestleyTaylor.soilFluxParameterNight"	0.75
+        		"output.doPrintOutputPT"					true
+        		
+        
+				//Parameters for the Radiation Stress
+				"PTstressfactor.useRadiationStress" true
+				  
+				"PTstressfactor.alpha" 				0.005 //parametro di pendenza
+				"PTstressfactor.theta" 				0.85 // parametro di forma
+				
+				//Parameter for the Vapour Pressure Deficit Stress
+				"PTstressfactor.useVDPStress" true
+				
+				"PTstressfactor.VPD0" 				5.0 
+				
+				//Parameters for the Temperature Stress
+				"PTstressfactor.useTemperatureStress" true    
+				   	
+				"PTstressfactor.Tl" 		"-5.0"
+				"PTstressfactor.T0" 				20.0
+				"PTstressfactor.Th" 				45.0 
+				
+				//Parameters for the Water Stress 
+				"PTstressfactor.useWaterStress" true 
+				     	
+				"PTstressfactor.waterWiltingPoint"	0.15   //FAO Table 19 - http://www.fao.org/3/X0490E/x0490e0c.htm#TopOfPage
+				"PTstressfactor.waterFieldCapacity"	0.27
+				"PTstressfactor.depth"  			1.10   //FAO Table 22
+				"PTstressfactor.depletionFraction" 	0.40   //FAO Table 22 - http://www.fao.org/3/X0490E/x0490e0e.htm#TopOfPage
+				"PTstressfactor.cropCoefficient" 	0.80   //FAO Table 12
+        		
+		        "input.temporalStep"	"${timestep}"
+        		"input.tStartDate"		"${startDate}"
+        		
+        		// READERS
+				"readerAirTemperature.file"         			"${home}/data/${site}/${ID}/airT_${ID}.csv"
+				"readerAirTemperature.idfield"          		"ID"		
+				"readerAirTemperature.tStart"           		"${startDate}"
+				"readerAirTemperature.tEnd"         			"${endDate}"
+				"readerAirTemperature.tTimestep"            	"${timestep}"
+				"readerAirTemperature.fileNovalue"          	"-9999.0"       
+				
+				"readerNetRadiation.file"                       "${home}/data/${site}/${ID}/Net_${ID}.csv"
+				"readerNetRadiation.idfield"                    "ID"
+				"readerNetRadiation.tStart"                     "${startDate}"
+				"readerNetRadiation.tEnd"                       "${endDate}"
+				"readerNetRadiation.tTimestep"                  "${timestep}"
+				"readerNetRadiation.fileNovalue"                "-9999.0"	
+			
+				"readerAtmosphericPressure.file"                "${home}/data/${site}/${ID}/Pres_${ID}.csv"
+				"readerAtmosphericPressure.idfield"             "ID"		
+				"readerAtmosphericPressure.tStart"              "${startDate}"
+				"readerAtmosphericPressure.tEnd"                "${endDate}"
+				"readerAtmosphericPressure.tTimestep"           "${timestep}"
+				"readerAtmosphericPressure.fileNovalue"         "-9999.0"  
+				//contenuto d'acqua
+				"readerSoilMoisture.file"         				"${home}/data/${site}/${ID}/SoilMoisture18.csv" 
+				"readerSoilMoisture.idfield"      				"ID"  
+				"readerSoilMoisture.tStart"       				"${startDate}"
+				"readerSoilMoisture.tEnd"         				"${endDate}"
+				"readerSoilMoisture.tTimestep"    				"${timestep}"
+				"readerSoilMoisture.fileNovalue"  				"-9999.0"     
+				
+				"readerSoilHeatFlux.file"                       "${home}/data/${site}/${ID}/GHF_${ID}.csv"	
+                "readerSoilHeatFlux.idfield"                    "ID"		
+                "readerSoilHeatFlux.tStart"                     "${startDate}"
+                "readerSoilHeatFlux.tEnd"                       "${endDate}"
+                "readerSoilHeatFlux.tTimestep"                  "${timestep}"
+                "readerSoilHeatFlux.fileNovalue"                "-9999.0"                                                     
+			
+				// WRITERS
+				"writerLatentHeatPT.file"						"${home}/output/${site}/${ID}/ActualLatentHeat_PT_${ID}.csv" 
+				"writerLatentHeatPT.tStart"						"${startDate}"
+				"writerLatentHeatPT.tTimestep"					"${timestep}"
+				
+				"writerETPriestleyTaylor.file"					"${home}/output/${site}/${ID}/ActualET_PT_${ID}.csv" 
+				"writerETPriestleyTaylor.tStart"				"${startDate}"
+				"writerETPriestleyTaylor.tTimestep"				"${timestep}"
+				}
+				
+				
+				connect { 
+				"input.doProcess"                   	"priestleyTaylor.doProcess"
+				"input.doProcess"                   	"PTstressfactor.doProcess"  
+				"priestleyTaylor.doProcessOut"          "output.doProcessOut"	               
+				"readerAirTemperature.outData"			"input.inAirTemperature"
+				"readerNetRadiation.outData"			"input.inNetRadiation"
+				"readerAtmosphericPressure.outData"		"input.inAtmosphericPressure"	
+				"readerSoilHeatFlux.outData"			"input.inSoilFlux"	
+				"readerCentroids.geodata"				"input.inCentroids"
+				"readerDem.outRaster"					"input.inDem" 	
+				"PTstressfactor.stressSun"				"priestleyTaylor.stressFactor"
+				"output.outLatentHeatPT"				"writerLatentHeatPT.inData"
+				"output.outEvapoTranspirationPT"   		"writerETPriestleyTaylor.inData"
+				}					
+			}
+	}
+
+

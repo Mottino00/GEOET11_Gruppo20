@@ -1,0 +1,76 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// start and end date of the simulation
+def startDate="2013-12-15 00:00"
+def endDate="2015-12-16 00:00"
+def basin="Cavone"
+def ID=1
+def IDsubbasin="ID"
+def timestep=60
+
+OMS3.sim {
+
+resource "$oms_prj/lib"
+
+ model(while: "reader_data_SWRB.doProcess" ) {
+   components {
+    
+        // components to be called: reader input data, lwrb and writer output data
+        "reader_data_SWRB"             "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+        "reader_data_Measured"         "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+
+        "vreader_centroids"            "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+		//lettura del clearness index
+        "Clearness"                    "clearnessIndex.ClearnessIndexPointCase"
+		//scrittura del ci
+        "writer_CI"                    "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        
+            
+         
+   }
+
+  
+   parameter{
+
+        "vreader_centroids.file"           "${home}/data/${basin}/${ID}/centroids_ID_${ID}.shp" //centroide
+   
+        // parameter of the reader components 
+        "reader_data_SWRB.file"             "${home}/data/${basin}/${ID}/TopAtm_${ID}.csv" //rad. simulata con il file 01 radiation
+        "reader_data_SWRB.idfield"          "ID"  
+        "reader_data_SWRB.tStart"           "${startDate}"
+        "reader_data_SWRB.tEnd"             "${endDate}"
+        "reader_data_SWRB.tTimestep"        "${timestep}"
+        "reader_data_SWRB.fileNovalue"      "-9999"
+        
+        "reader_data_Measured.file"             "${home}/data/${basin}/${ID}/Measured.csv" 
+        "reader_data_Measured.idfield"          "ID"  
+        "reader_data_Measured.tStart"           "${startDate}"
+        "reader_data_Measured.tEnd"             "${endDate}"
+        "reader_data_Measured.tTimestep"        "${timestep}"
+        "reader_data_Measured.fileNovalue"      "-9999"
+        
+        
+            
+        // parameter of the writing component    
+        "writer_CI.file"                   "${home}/data/${basin}/${ID}/CI_${ID}.csv" 
+        "writer_CI.tStart"                 "${startDate}"
+        "writer_CI.fileNovalue"			"-9999"
+        "writer_CI.tTimestep"              "${timestep}"
+        
+
+   }
+    connect {
+        
+        
+        "reader_data_SWRB.outData"             "Clearness.inSWRBTopATMValues"
+        "reader_data_Measured.outData"             "Clearness.inSWRBMeasuredValues"
+
+        "Clearness.outCIHM"                      "writer_CI.inData"
+
+   }
+
+ }
+}
+
+

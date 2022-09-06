@@ -1,0 +1,155 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+def startDate =	"2013-12-15 00:00"
+def endDate =	"2015-12-16 00:00"
+def timestep =	60
+def ID =		1	
+def IDcsv = 	"ID"
+def Nancsv =	"-9999"
+def basin =		"Cavone"
+
+
+
+OMS3.sim (name: "${ID}") {
+
+resource "$oms_prj/lib"
+    
+ model(while:"reader_data_airT.doProcess") {
+ //model() {
+   components {
+   
+        "reader_data_airT"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+        "reader_sky"                  "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+        "reader_dem"                  "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+        "vreader_centroids"           "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+        "lwrb"                        "lwrbPointCase.Lwrb"
+        "swrb"                        "swrbPointCase.ShortwaveRadiationBalancePointCase"
+        "net"                         "netRadiation.NetRadiationPointCase"
+        
+        // writer LWRB        
+        "writer_down"                 "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        "writer_up"                   "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"      
+        
+        // writer SWRB direct
+        "writer_total"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        "writer_direct"               "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+		"writer_diffuse"              "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+		"writer_top"                  "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 	
+			
+        // writer net radiation
+        "writer_net"                  "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+   }
+
+  
+   parameter{
+   
+        // parameters reader data input air temperature
+        "reader_data_airT.file"            "${home}/data/${basin}/${ID}/airT_${ID}.csv"
+        "reader_data_airT.idfield"         "${IDcsv}"  
+        "reader_data_airT.tStart"          "${startDate}"
+        "reader_data_airT.tEnd"            "${endDate}"
+        "reader_data_airT.tTimestep"       "${timestep}"
+        "reader_data_airT.fileNovalue"     "${Nancsv}"
+        
+        "reader_dem.file"                  "${home}/data/${basin}/${ID}/dem_${ID}.tif"
+        "reader_sky.file"                  "${home}/data/${basin}/${ID}/sky_${ID}.asc"
+        "vreader_centroids.file"           "${home}/data/${basin}/${ID}/centroids_ID_${ID}.shp"
+         
+        // parameters of the lwrb  component
+        // Idso 1981
+        "lwrb.fStationsid"     "ID" 
+        "lwrb.X"               0.7						
+        "lwrb.Y"               5.95
+        "lwrb.model"           6
+        "lwrb.epsilonS"        0.98
+        "lwrb.A_Cloud"         0				
+        "lwrb.B_Cloud"         1	
+        
+        // parameters of the swrb  component
+        "swrb.fStationsid"     "ID" 
+        "swrb.tStartDate"      "${startDate}"   
+        "swrb.doHourly"        "True"   //or false if daily
+        "swrb.pCmO3"           0.6		
+        "swrb.pAlphag"         0.9		
+        "swrb.pVisibility"     80	
+           
+        // parameters of the netrad  component (albedo)
+        "net.alfa"            0.26
+        
+        
+        
+        
+        // LWRB writer output paramters     
+        "writer_down.file"                  "${home}/data/${basin}/${ID}/LongDownwelling_${ID}.csv" 
+        "writer_down.tStart"                "${startDate}"
+        "writer_down.fileNovalue"		    "${Nancsv}"
+        "writer_down.tTimestep"             "${timestep}"
+        
+        "writer_up.file"                    "${home}/data/${basin}/${ID}/LongUpwelling_${ID}.csv" 
+        "writer_up.tStart"                  "${startDate}"
+        "writer_up.fileNovalue" 			"${Nancsv}"
+        "writer_up.tTimestep"               "${timestep}"
+      
+		// SWRB writer output paramters     
+        "writer_total.file"                 "${home}/data/${basin}/${ID}/Total_${ID}.csv"
+        "writer_total.tStart"               "${startDate}"
+        "writer_total.fileNovalue" 		   	"${Nancsv}"
+        "writer_total.tTimestep"            "${timestep}"
+        
+        "writer_direct.file"				"${home}/data/${basin}/${ID}/ShortwaveDirect_${ID}.csv" 
+		"writer_direct.tStart"				"${startDate}"
+		"writer_direct.fileNovalue"			"${Nancsv}"
+		"writer_direct.tTimestep"			"${timestep}"				        				        
+				  
+		"writer_diffuse.file"				"${home}/data/${basin}/${ID}/ShortwaveDiffuse_${ID}.csv" 
+		"writer_diffuse.tStart"				"${startDate}"
+		"writer_diffuse.fileNovalue"		"${Nancsv}"
+		"writer_diffuse.tTimestep"			"${timestep}" 
+		
+		"writer_top.file"					"${home}/data/${basin}/${ID}/TopAtm_${ID}.csv" 
+		"writer_top.tStart"					"${startDate}"
+		"writer_top.fileNovalue"			"${Nancsv}"
+		"writer_top.tTimestep"				"${timestep}" 
+        
+        // Net radiation writing component    
+        "writer_net.file"                   "${home}/data/${basin}/${ID}/Net_${ID}.csv" 
+        "writer_net.tStart"                 "${startDate}"
+        "writer_net.fileNovalue"			"${Nancsv}"
+        "writer_net.tTimestep"              "${timestep}"
+        
+      
+        
+   }
+   connect {
+   
+		// lwrb 
+		"reader_data_airT.outData"          "lwrb.inAirTemperatureValues"
+        "reader_data_airT.outData"          "lwrb.inSoilTempratureValues"
+        "reader_sky.outRaster"              "lwrb.inSkyview"          
+        "vreader_centroids.geodata"         "lwrb.inStations"
+        
+        // swrb
+        "reader_data_airT.outData"          "swrb.inTemperatureValues"    
+        "reader_dem.outRaster"              "swrb.inDem"    
+        "reader_sky.outRaster"              "swrb.inSkyview"          
+        "vreader_centroids.geodata"         "swrb.inStations"
+
+        // net      
+        "swrb.outHMtotal"             		"net.inShortwaveValues"
+        "lwrb.outHMlongwaveDownwelling"     "net.inDownwellingValues"
+        "lwrb.outHMlongwaveUpwelling"       "net.inUpwellingValues"
+        
+		// writers
+        "lwrb.outHMlongwaveDownwelling"     "writer_down.inData"
+        "lwrb.outHMlongwaveUpwelling"       "writer_up.inData"
+        "swrb.outHMtotal"                   "writer_total.inData"
+        "swrb.outHMdirect"					"writer_direct.inData"
+		"swrb.outHMdiffuse"					"writer_diffuse.inData"
+		"swrb.outHMtopatm"					"writer_top.inData"
+		"net.outHMnetRad"                   "writer_net.inData"
+
+   }
+ }
+}
+
+

@@ -1,0 +1,161 @@
+import static oms3.SimBuilder.instance as OMS3
+import static oms3.SimBuilder.*
+def home = oms_prj
+
+def startDate	= "2013-12-15 00:00"
+def endDate		= "2015-12-16 00:00"
+def basin 		= "Cavone"
+def ID			= 1 //sottobacino
+def timestep 	= 60
+
+OMS3.sim {
+     resource "$oms_prj/lib"
+     model(while:"readerAirTemperature.doProcess")	{
+        components {
+				
+			//Input-Output components
+			"input"     "it.geoframe.blogspot.geoet.inout.InputReaderMain"
+			"output"    "it.geoframe.blogspot.geoet.inout.OutputWriterMain"
+			
+			//GEOET components
+			"penmanMonteithFao"             "it.geoframe.blogspot.geoet.penmanmonteithfao.PenmanMonteithFAOTotalStressedSolverMain"
+			"PMstressfactor"				"it.geoframe.blogspot.geoet.stressfactor.solver.PTPMStressFactorSolverMain"
+				
+			"readerAirTemperature"              "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerWindVelocity"             	"org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerRelativeHumidity"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerNetRadiation"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerAtmosphericPressure"         "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+			"readerSoilHeatFlux"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"	
+			"readerSoilMoisture"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"	
+			"readerCentroids"				    "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"		       
+			"readerDem"							"org.hortonmachine.gears.io.rasterreader.OmsRasterReader" 
+			"writerLatentHeatFAO"               "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"						
+			"writerETFAO"                       "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"	
+	 
+			}
+			parameter{		
+
+				// GEOgraphy PARAMETERS
+				"readerDem.file"			"${home}/data/${basin}/${ID}/dem_${ID}.tif"	 
+				"readerCentroids.file"		"${home}/data/${basin}/${ID}/centroids_ID_${ID}.shp"
+				"input.idCentroids"			"ID"
+				"input.centroidElevation"	"Elevation"
+
+				// PARAMETERS
+				"penmanMonteithFao.canopyHeight"			0.60
+		        "penmanMonteithFao.soilFluxParameterDay"	0.35
+		        "penmanMonteithFao.soilFluxParameterNight"	0.75
+		        "output.doPrintOutputPM"					true
+				"input.tStartDate"					"${startDate}"
+				"input.temporalStep"				"${timestep}"
+				
+				//Parameters for the Radiation Stress
+				"PMstressfactor.useRadiationStress" false
+				  
+				"PMstressfactor.alpha" 		0.005
+				"PMstressfactor.theta" 		0.85
+				
+				//Parameter for the Vapour Pressure Deficit Stress
+				"PMstressfactor.useVDPStress" false
+				
+				"PMstressfactor.VPD0" 	5.0 
+				
+				//Parameters for the Temperature Stress
+				"PMstressfactor.useTemperatureStress" false    
+				   	
+				"PMstressfactor.Tl" 		"-5.0"
+				"PMstressfactor.T0" 		20.0
+				"PMstressfactor.Th" 		45.0 
+				
+				//Parameters for the Water Stress 
+				"PMstressfactor.useWaterStress" true 
+				     	
+				"PMstressfactor.waterWiltingPoint"	0.15   //FAO Table 19 - http://www.fao.org/3/X0490E/x0490e0c.htm#TopOfPage
+				"PMstressfactor.waterFieldCapacity"	0.27
+				"PMstressfactor.depth"  			1.10
+				"PMstressfactor.depletionFraction" 	0.40   //FAO Table 22 - http://www.fao.org/3/X0490E/x0490e0e.htm#TopOfPage
+				"PMstressfactor.cropCoefficient" 	0.80 
+								
+				//	READERS				
+				"readerAirTemperature.file"         			"${home}/data/${basin}/${ID}/airT_${ID}.csv"
+				"readerAirTemperature.idfield"          		"ID"		
+				"readerAirTemperature.tStart"           		"${startDate}"
+				"readerAirTemperature.tEnd"         			"${endDate}"
+				"readerAirTemperature.tTimestep"            	"${timestep}"
+				"readerAirTemperature.fileNovalue"          	"-9999.0"
+								
+				"readerWindVelocity.file"                       "${home}/data/${basin}/${ID}/Wind_${ID}.csv"	
+				"readerWindVelocity.idfield"                    "ID"		
+				"readerWindVelocity.tStart"                     "${startDate}"
+				"readerWindVelocity.tEnd"                       "${endDate}"
+				"readerWindVelocity.tTimestep"                  "${timestep}"
+				"readerWindVelocity.fileNovalue"                "-9999.0"
+								
+				"readerRelativeHumidity.file"                   "${home}/data/${basin}/${ID}/RH_${ID}.csv"
+				"readerRelativeHumidity.idfield"                "ID"		
+				"readerRelativeHumidity.tStart"                 "${startDate}"
+				"readerRelativeHumidity.tEnd"                   "${endDate}"
+				"readerRelativeHumidity.tTimestep"              "${timestep}"
+				"readerRelativeHumidity.fileNovalue"            "-9999.0"
+								
+				"readerNetRadiation.file"                       "${home}/data/${basin}/${ID}/Net_allsky_${ID}.csv"
+				"readerNetRadiation.idfield"                    "ID"
+				"readerNetRadiation.tStart"                     "${startDate}"
+				"readerNetRadiation.tEnd"                       "${endDate}"
+				"readerNetRadiation.tTimestep"                  "${timestep}"
+				"readerNetRadiation.fileNovalue"                "-9999.0"
+						
+				"readerAtmosphericPressure.file"                "${home}/data/${basin}/${ID}/Pres_${ID}.csv"
+				"readerAtmosphericPressure.idfield"             "ID"		
+				"readerAtmosphericPressure.tStart"              "${startDate}"
+				"readerAtmosphericPressure.tEnd"                "${endDate}"
+				"readerAtmosphericPressure.tTimestep"           "${timestep}"
+				"readerAtmosphericPressure.fileNovalue"         "-9999.0"
+								
+				"readerSoilHeatFlux.file"                       "${home}/data/${basin}/${ID}/GHF_${ID}.csv"	
+                "readerSoilHeatFlux.idfield"                    "ID"		
+                "readerSoilHeatFlux.tStart"                     "${startDate}"
+                "readerSoilHeatFlux.tEnd"                       "${endDate}"
+                "readerSoilHeatFlux.tTimestep"                  "${timestep}"
+                "readerSoilHeatFlux.fileNovalue"                "-9999.0"			
+		
+				"readerSoilMoisture.file"                        "${home}/data/${basin}/${ID}/SoilMoisture18.csv"	
+                "readerSoilMoisture.idfield"                     "ID"		
+                "readerSoilMoisture.tStart"                      "${startDate}"
+                "readerSoilMoisture.tEnd"                        "${endDate}"
+                "readerSoilMoisture.tTimestep"                   "${timestep}"
+                "readerSoilMoisture.fileNovalue"                 "-9999.0"																				
+		
+                //	WRITERS				              
+				"writerLatentHeatFAO.file"						"${home}/output/${basin}/${ID}/ActualCILatentHeat_FAO_${ID}.csv"	
+				"writerLatentHeatFAO.tStart"					"${startDate}"
+				"writerLatentHeatFAO.tTimestep"					"${timestep}"
+				
+				"writerETFAO.file"								"${home}/output/${basin}/${ID}/ActualCIEvapotranspiration_FAO_${ID}.csv" 
+				"writerETFAO.tStart"							"${startDate}"
+				"writerETFAO.tTimestep"							"${timestep}"
+				
+            }
+            connect	{
+                "input.doProcess"                   	"penmanMonteithFao.doProcess" 
+				"penmanMonteithFao.doProcessOut"        "output.doProcessOut"
+                
+                "readerAirTemperature.outData"			"input.inAirTemperature"
+				"readerWindVelocity.outData"			"input.inWindVelocity"
+				"readerRelativeHumidity.outData"		"input.inRelativeHumidity"
+				"readerNetRadiation.outData"			"input.inNetRadiation"
+				"readerAtmosphericPressure.outData"		"input.inAtmosphericPressure"
+				"readerSoilHeatFlux.outData"			"input.inSoilFlux"
+				"readerSoilMoisture.outData"			"input.inSoilMoisture"
+				
+				"PMstressfactor.stressSun"				"penmanMonteithFao.stressFactor"
+				
+				"readerCentroids.geodata"				"input.inCentroids"
+				"readerDem.outRaster"					"input.inDem"
+				 									
+				"output.outLatentHeatPM"			"writerLatentHeatFAO.inData"
+				"output.outEvapoTranspirationPM"    "writerETFAO.inData"
+			}
+			}
+		}

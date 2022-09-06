@@ -1,0 +1,93 @@
+//radiazione ad onda lunga
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// start and end date of the simulation
+def startDate="2013-12-15 00:00"
+def endDate="2015-12-16 00:00"
+def basin="Cavone"
+def ID=1
+def IDsubbasin="ID"
+def timestep=60
+
+OMS3.sim {
+
+resource "$oms_prj/lib"
+
+ model(while: "reader_data_airT.doProcess" ) {
+   components {
+    
+        // components: reader data input, lwrb and writer data output 
+        "reader_data_airT"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+        "reader_sky"                  "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+        "reader_CI"                  "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+
+        "vreader_centroids"           "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+        "lwrb"                        "lwrbPointCase.Lwrb"
+        "writer_down"                 "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        "writer_up"                   "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+   }
+
+  
+   parameter{
+   
+        // parameters reader data input air temperature
+        "reader_data_airT.file"             "${home}/data/${basin}/${ID}/airT_${ID}.csv"
+        "reader_data_airT.idfield"          "ID"  
+        "reader_data_airT.tStart"           "${startDate}"
+        "reader_data_airT.tEnd"             "${endDate}"
+        "reader_data_airT.tTimestep"        "${timestep}"
+        "reader_data_airT.fileNovalue"      "-9999"
+
+        "reader_CI.file"             "${home}/data/${basin}/${ID}/CI_${ID}.csv"    
+        "reader_CI.idfield"          "ID"  
+        "reader_CI.tStart"           "${startDate}"
+        "reader_CI.tEnd"             "${endDate}"
+        "reader_CI.tTimestep"        "${timestep}"
+        "reader_CI.fileNovalue"      "-9999"
+               
+        "reader_sky.file"                   "${home}/data/${basin}/${ID}/sky_${ID}.asc"
+        "vreader_centroids.file"            "${home}/data/${basin}/${ID}/centroids_ID_${ID}.shp"
+        
+         // name of the column in the shape file containing the ID of the station
+        "lwrb.fStationsid"                  "${IDsubbasin}" 
+
+
+        // parameters of the lwrb  component
+        // Idso 1981
+        "lwrb.X"               0.7						
+        "lwrb.Y"               5.95
+        "lwrb.model"           "6"
+        "lwrb.epsilonS"        0.98
+        "lwrb.A_Cloud"         0.5   //si tiene conto del CI (una sua frazione)				
+        "lwrb.B_Cloud"         1	
+        
+            
+        // writer output parameters     
+        "writer_down.file"                   "${home}/data/${basin}/${ID}/LongDownwellingCI_${ID}.csv" 
+        "writer_down.tStart"                 "${startDate}"
+        "writer_down.fileNovalue"	     	 "-9999"
+        "writer_down.tTimestep"              "${timestep}"
+        
+        "writer_up.file"                     "${home}/data/${basin}/${ID}/LongUpwellingCI_${ID}.csv" 
+        "writer_up.tStart"                   "${startDate}"
+        "writer_up.fileNovalue"              "-9999"
+        "writer_up.tTimestep"                "${timestep}"
+        
+   }
+    connect {
+        
+        "reader_CI.outData"                   "lwrb.inClearnessIndexValues"
+        "reader_data_airT.outData"            "lwrb.inAirTemperatureValues"
+        "reader_data_airT.outData"            "lwrb.inSoilTempratureValues"
+        "reader_sky.outRaster"                "lwrb.inSkyview"          
+        "vreader_centroids.geodata"           "lwrb.inStations"
+        "lwrb.outHMlongwaveDownwelling"       "writer_down.inData"
+        "lwrb.outHMlongwaveUpwelling"         "writer_up.inData"
+
+   }
+
+ }
+}
+
+

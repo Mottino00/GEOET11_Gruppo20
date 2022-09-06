@@ -1,0 +1,105 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// start and end date of the simulation
+def startDate="2013-12-15 00:00"
+def endDate="2015-12-16 00:00"
+def basin="Cavone"
+def ID=1
+def IDsubbasin="ID"
+def timestep=60
+
+OMS3.sim {
+
+resource "$oms_prj/lib"
+
+ model(while : "reader_data_airT.doProcess"  ) {
+   components {
+    
+    	
+        "reader_data_airT"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"       
+        "reader_dem"                  "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+        "reader_sky"                  "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+        "vreader_centroids"           "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"     
+        "swrb"                        "swrbPointCase.ShortwaveRadiationBalancePointCase"       
+        "writer_total"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        //rad. diretta top atm
+        "writer_direct"               "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        //rad. diffusa top atm
+		"writer_diffuse"              "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 	
+        "writer_top"                  "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 	
+			   
+            
+   }
+
+  
+   parameter{
+   
+        // parameters reader data input air temperature
+        "reader_data_airT.file"             "${home}/data/${basin}/${ID}/airT_${ID}.csv"
+        "reader_data_airT.idfield"          "ID"  
+        "reader_data_airT.tStart"           "${startDate}"
+        "reader_data_airT.tEnd"             "${endDate}"
+        "reader_data_airT.tTimestep"        "${timestep}"
+        "reader_data_airT.fileNovalue"      "-9999" 
+      
+              
+        "reader_dem.file"                   "${home}/data/${basin}/${ID}/dem_${ID}.tif" 
+        "reader_sky.file"                   "${home}/data/${basin}/${ID}/sky_${ID}.asc" 
+        "vreader_centroids.file"            "${home}/data/${basin}/${ID}/centroids_ID_${ID}.shp"
+        
+        
+         // name of the column in the shape file containing the ID of the station
+        "swrb.fStationsid"                      "${IDsubbasin}" 
+        "swrb.tStartDate"                       "${startDate}"   
+        "swrb.doHourly"                         true   //or false if daily
+        
+        
+        // cm di ozono 
+        "swrb.pCmO3"                            0.6		// literature parameters
+        
+        //albedo del suolo
+        "swrb.pAlphag"                          0.9		// literature parameters
+        
+        //in km tra 60 e 80
+        "swrb.pVisibility"                      80		// literature parameters
+            
+        // writer output   
+        "writer_total.file"                 "${home}/data/${basin}/${ID}/SWTotal_${ID}.csv" 
+        "writer_total.tStart"               "${startDate}"
+        "writer_total.fileNovalue" 		   	"-9999"
+        "writer_total.tTimestep"            "${timestep}" 
+        
+        "writer_direct.file"				"${home}/data/${basin}/${ID}/ShortwaveDirect_${ID}.csv" 
+		"writer_direct.tStart"				"${startDate}"
+		"writer_direct.fileNovalue"			"-9999"
+		"writer_direct.tTimestep"			"${timestep}"				        				        
+				  
+		"writer_diffuse.file"				"${home}/data/${basin}/${ID}/ShortwaveDiffuse_${ID}.csv" 
+		"writer_diffuse.tStart"				"${startDate}"
+		"writer_diffuse.fileNovalue"		"-9999"
+		"writer_diffuse.tTimestep"			"${timestep}" 
+
+                "writer_top.file"			"${home}/data/${basin}/${ID}/TopAtm_${ID}.csv" 
+		"writer_top.tStart"					"${startDate}"
+		"writer_top.fileNovalue"			"-9999"
+		"writer_top.tTimestep"				"${timestep}" 
+   }
+    connect {
+        
+         
+        "reader_data_airT.outData"          "swrb.inTemperatureValues"
+        "reader_dem.outRaster"              "swrb.inDem"    
+        "reader_sky.outRaster"              "swrb.inSkyview"          
+        "vreader_centroids.geodata"         "swrb.inStations"
+        "swrb.outHMtotal"                   "writer_total.inData"
+        "swrb.outHMdirect"				    "writer_direct.inData"
+		"swrb.outHMdiffuse"					"writer_diffuse.inData"
+        "swrb.outHMtopatm"					"writer_top.inData"
+		
+   }
+
+ }
+}
+
+

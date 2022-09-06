@@ -1,0 +1,103 @@
+// Decomposition models -> riduce la rad. ad onda corta in funz del clearness index
+// CC4 Riccardo Busti
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+def startDate="2013-12-15 00:00"
+def endDate="2015-12-16 00:00"
+def timestep=60
+def ID=1
+def IDcsv= "ID"
+def IDsubbasin="ID"
+def Nancsv="-9999"
+def basin="Cavone"
+def swrbDoHourly="True"
+def modeltype="Boland"
+
+OMS3.sim (name: "${ID}") {
+
+resource "$oms_prj/lib"
+    
+ model(while:"reader_ci.doProcess") {
+ //model() {
+   components {
+           
+         "reader_ci"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"  
+         "reader_diffuse"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"  
+         "reader_direct"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"  
+         "reader_measured"            "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"       
+                          
+       // "vreader_centroids"           "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+        //rad. ad onda corta          
+        "swrb"                        "decompositionModels.DecompositionModels"
+
+        // writer SWRB 
+        "writer_allsky"                "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 	
+
+     
+   }
+
+  
+   parameter{
+
+        "swrb.model"    "${modeltype}"
+   
+      //  "vreader_centroids.file"           "${home}/data/${basin}/${ID}/centroid_ID_${ID}.shp"
+   
+        "reader_ci.file"                    "${home}/data/${basin}/${ID}/CI_${ID}.csv"     
+        "reader_ci.idfield"                 "${IDcsv}"  
+        "reader_ci.tStart"                  "${startDate}"
+        "reader_ci.tEnd"                    "${endDate}"
+        "reader_ci.tTimestep"               "${timestep}"
+        "reader_ci.fileNovalue"             "${Nancsv}"
+    
+        "reader_diffuse.file"                    "${home}/data/${basin}/${ID}/ShortwaveDiffuse_${ID}.csv"    
+        "reader_diffuse.idfield"                 "${IDcsv}"  
+        "reader_diffuse.tStart"                  "${startDate}"
+        "reader_diffuse.tEnd"                    "${endDate}"
+        "reader_diffuse.tTimestep"               "${timestep}"
+        "reader_diffuse.fileNovalue"             "${Nancsv}"
+
+        "reader_direct.file"                    "${home}/data/${basin}/${ID}/ShortwaveDirect_${ID}.csv"   
+        "reader_direct.idfield"                 "${IDcsv}"  
+        "reader_direct.tStart"                  "${startDate}"
+        "reader_direct.tEnd"                    "${endDate}"
+        "reader_direct.tTimestep"               "${timestep}"
+        "reader_direct.fileNovalue"             "${Nancsv}"
+         
+        "reader_measured.file"                    "${home}/data/${basin}/${ID}/Measured.csv"
+        "reader_measured.idfield"                 "${IDcsv}"  
+        "reader_measured.tStart"                  "${startDate}"
+        "reader_measured.tEnd"                    "${endDate}"
+        "reader_measured.tTimestep"               "${timestep}"
+        "reader_measured.fileNovalue"             "${Nancsv}"
+
+        
+  
+        "writer_allsky.file"                   "${home}/data/${basin}/${ID}/SWRBallSky_${ID}.csv" 
+        "writer_allsky.tStart"                 "${startDate}"
+        "writer_allsky.fileNovalue"	       "${Nancsv}"
+        "writer_allsky.tTimestep"              "${timestep}"
+        
+         
+       
+         
+        
+   }
+   connect {
+   
+        "reader_ci.outData"                 "swrb.inClearnessIndexValues" 
+        "reader_diffuse.outData"            "swrb.inSWRBDiffuseValues"            
+        "reader_direct.outData"             "swrb.inSWRBDirectValues"
+        "reader_measured.outData"            "swrb.inSWRBMeasuredValues"
+		
+	// writers
+        "swrb.outHMSWRBallSky"     "writer_allsky.inData"
+   	
+   	    
+   }
+
+
+ }
+}
+
+

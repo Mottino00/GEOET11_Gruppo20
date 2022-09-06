@@ -1,0 +1,27 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+def site = "Cavone"
+def ID = 1
+
+OMS3.sim {
+	resource "$oms_prj/lib"
+	model() { 
+		components {            
+			"reader_pit"            "org.hortonmachine.gears.io.rasterreader.OmsRasterReader"
+			"skyview"				"org.hortonmachine.hmachine.modules.hydrogeomorphology.skyview.OmsSkyview"
+			"writer_skyview"    	"org.hortonmachine.gears.io.rasterwriter.OmsRasterWriter"			                     
+		}  
+		
+		
+		parameter{   
+			"reader_pit.file"       "${home}/data/${site}/${ID}/dem_${ID}.tif"				         
+			"writer_skyview.file"	"${home}/data/${site}/${ID}/sky_${ID}.asc"        
+		}
+
+				
+		connect {        
+			"reader_pit.outRaster"	"skyview.inElev"
+			"skyview.outSky"		"writer_skyview.inRaster"
+		}
+}}
